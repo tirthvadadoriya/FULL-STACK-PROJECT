@@ -32,7 +32,9 @@
 </header>
 
 <main class="wrap">
-  <form class="post-form" action="#" method="post">
+  <div class="form-banner" id="formBanner" role="alert" hidden></div>
+
+  <form class="post-form" action="#" method="post" novalidate id="postForm">
 
     <div class="form-section">
       <p class="form-section-title">Post details</p>
@@ -40,30 +42,37 @@
       <div class="field">
         <label for="title">Title</label>
         <input type="text" id="title" name="title" placeholder="On keeping a slow notebook" required>
+        <p class="field-error" id="title-error"></p>
       </div>
 
       <div class="field-row">
         <div class="field">
           <label for="author">Author</label>
           <input type="text" id="author" name="author" placeholder="Your name" required>
+          <p class="field-error" id="author-error"></p>
         </div>
         <div class="field">
           <label for="date">Publish date</label>
-          <input type="text" id="date" name="date" placeholder="e.g. 2026-07-23" required>
+          <input type="text" id="date" name="date" placeholder="YYYY-MM-DD" required>
+          <p class="field-error" id="date-error"></p>
         </div>
       </div>
 
       <div class="field">
         <label for="summary">Summary <span class="hint">shown in the post list</span></label>
-        <input type="text" id="summary" name="summary" placeholder="One sentence describing the post">
+        <input type="text" id="summary" name="summary" placeholder="One sentence describing the post" maxlength="160">
+        <p class="char-count" id="summary-count">0 / 160</p>
+        <p class="field-error" id="summary-error"></p>
       </div>
     </div>
 
     <div class="form-section">
       <p class="form-section-title">Content</p>
       <div class="field">
-        <label for="body">Post content</label>
+        <label for="body">Post content <span class="hint">at least 40 characters</span></label>
         <textarea id="body" name="body" placeholder="Write your post here..." required></textarea>
+        <p class="char-count" id="body-count">0 characters</p>
+        <p class="field-error" id="body-error"></p>
       </div>
     </div>
 
@@ -71,13 +80,14 @@
       <p class="form-section-title">Organize</p>
 
       <div class="field">
-        <label>Tags <span class="hint">click to toggle</span></label>
-        <div class="tag-row">
-          <button type="button" class="tag-chip selected">Notes</button>
-          <button type="button" class="tag-chip">Reading</button>
-          <button type="button" class="tag-chip">Writing</button>
-          <button type="button" class="tag-chip">Life</button>
+        <label>Tags <span class="hint">click to toggle, pick at least one</span></label>
+        <div class="tag-row" id="tagRow">
+          <button type="button" class="tag-chip selected" data-tag="Notes">Notes</button>
+          <button type="button" class="tag-chip" data-tag="Reading">Reading</button>
+          <button type="button" class="tag-chip" data-tag="Writing">Writing</button>
+          <button type="button" class="tag-chip" data-tag="Life">Life</button>
         </div>
+        <p class="field-error" id="tags-error"></p>
       </div>
 
       <div class="field">
@@ -109,12 +119,6 @@
   </div>
 </footer>
 
-<script>
-  document.querySelectorAll('.tag-chip').forEach(function (chip) {
-    chip.addEventListener('click', function () {
-      chip.classList.toggle('selected');
-    });
-  });
-</script>
+<script src="script.js"></script>
 </body>
 </html>
