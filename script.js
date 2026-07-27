@@ -157,14 +157,48 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    const status = document.getElementById('status').value;
-    const verb = status === 'published' ? 'published' : 'saved as a draft';
-    showBanner('success', 'Post "' + fields.title.input.value.trim() + '" was ' + verb + ' (demo only — nothing was sent to a server).');
-    form.reset();
-    tagRow.querySelectorAll('.tag-chip').forEach(function (chip) { chip.classList.remove('selected'); });
-    tagRow.querySelector('.tag-chip').classList.add('selected');
-    summaryCount.textContent = '0 / 160';
-    bodyCount.textContent = '0 characters (min 40)';
-    Object.keys(fields).forEach(function (key) { showError(fields[key], ''); });
+    const payload = {
+      title: fields.title.input.value.trim(),
+      author: fields.author.input.value.trim(),
+      date: fields.date.input.value.trim(),
+      summary: fields.summary.input.value.trim(),
+      body: fields.body.input.value.trim(),
+      tags: getSelectedTags(),
+      status: document.getElementById('status').value
+    };
+
+    fetch('http://localhost:3000/blogs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+      .then(function (response) {
+        return response.json().then(function (data) {
+          return {
+            ok: response.ok,
+            data: data
+          };
+        });
+      })
+      .then(function (result) {
+        if (!result.ok) {
+          throw new Error(result.data.message || 'Unable to save the post right now.');
+        }
+
+        const status = payload.status;
+        const verb = status === 'published' ? 'published' : 'saved as a draft';
+        showBanner('success', 'Post "' + payload.title + '" was ' + verb + ' successfully.');
+        form.reset();
+        tagRow.querySelectorAll('.tag-chip').forEach(function (chip) { chip.classList.remove('selected'); });
+        tagRow.querySelector('.tag-chip').classList.add('selected');
+        summaryCount.textContent = '0 / 160';
+        bodyCount.textContent = '0 characters (min 40)';
+        Object.keys(fields).forEach(function (key) { showError(fields[key], ''); });
+      })
+      .catch(function (error) {
+        showBanner('error', error.message || 'Unable to save the post right now.');
+      });
   });
 });
