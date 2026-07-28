@@ -309,6 +309,73 @@ img { max-width: 100%; display: block; }
 .post-card:hover .read-more .arrow { transform: translateX(3px); }
 .post-card:hover .read-more { color: var(--accent); }
 
+.empty-state {
+  grid-column: 1 / -1;
+  background: var(--white);
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius);
+  padding: 28px;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.empty-state a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.post-detail {
+  background: var(--white);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 32px;
+  box-shadow: var(--shadow-sm);
+  margin: 0 0 56px;
+}
+
+.post-detail h2 {
+  font-family: var(--display);
+  font-size: 2rem;
+  line-height: 1.2;
+  margin: 0 0 10px;
+}
+
+.post-detail .detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  margin-bottom: 16px;
+}
+
+.post-detail .detail-body {
+  font-size: 1.03rem;
+  line-height: 1.8;
+  color: var(--ink);
+  white-space: pre-line;
+}
+
+.post-detail .detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.post-detail .detail-tags span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  padding: 4px 9px;
+  border-radius: 999px;
+}
+
 /* ================= Forms (Add Blog page) ================= */
 .form-page .hero { padding-bottom: 32px; }
 

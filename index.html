@@ -34,35 +34,8 @@
 
 <main class="wrap">
   <p class="section-label">Recent posts</p>
-  <div class="card-grid">
-    <a href="#" class="post-card">
-      <div class="card-meta">
-        <span class="tag">Notes</span>
-        <time datetime="2026-07-20">Jul 20, 2026</time>
-      </div>
-      <h3>On keeping a slow notebook</h3>
-      <p>Why a page that fills in slowly is more useful than one that fills in fast.</p>
-      <span class="read-more">Read post <span class="arrow">&rarr;</span></span>
-    </a>
-    <a href="#" class="post-card">
-      <div class="card-meta">
-        <span class="tag">Life</span>
-        <time datetime="2026-07-11">Jul 11, 2026</time>
-      </div>
-      <h3>Three questions worth re-asking</h3>
-      <p>A short list I return to whenever a plan starts to feel certain.</p>
-      <span class="read-more">Read post <span class="arrow">&rarr;</span></span>
-    </a>
-    <a href="#" class="post-card">
-      <div class="card-meta">
-        <span class="tag">Reading</span>
-        <time datetime="2026-06-29">Jun 29, 2026</time>
-      </div>
-      <h3>Reading in the margins</h3>
-      <p>Notes on annotating books without ruining them for the next reader.</p>
-      <span class="read-more">Read post <span class="arrow">&rarr;</span></span>
-    </a>
-  </div>
+  <div class="card-grid" id="postGrid" aria-live="polite"></div>
+  <article class="post-detail" id="postDetail" hidden></article>
 </main>
 
 <footer class="site-footer">
@@ -76,5 +49,6 @@
   </div>
 </footer>
 
+<script src="script.js"></script>
 </body>
 </html>

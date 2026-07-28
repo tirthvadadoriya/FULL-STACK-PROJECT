@@ -1,15 +1,187 @@
 // ============================================================
-// Add Blog form — validation + interaction
-// Only runs on pages that actually have the form (guards below
-// mean this file is safe to include on every page).
+// Blog list + add blog form
+// The homepage renders posts from the backend API, while the
+// add-blog page keeps its validation and submit flow.
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', function () {
+  const postGrid = document.getElementById('postGrid');
+  const postDetail = document.getElementById('postDetail');
+
+  if (postGrid) {
+    let allPosts = [];
+
+    function formatDate(value) {
+      if (!value) return '';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function renderDetail(post) {
+      if (!postDetail) return;
+
+      if (!post) {
+        postDetail.hidden = true;
+        postDetail.innerHTML = '';
+        return;
+      }
+
+      const tags = Array.isArray(post.tags) && post.tags.length > 0 ? post.tags : ['General'];
+      postDetail.hidden = false;
+      postDetail.innerHTML = [
+        '<p class="section-label">Reading now</p>',
+        '<h2>' + escapeHtml(post.title || 'Untitled post') + '</h2>',
+        '<div class="detail-meta">',
+        '<span>By ' + escapeHtml(post.author || 'Unknown author') + '</span>',
+        '<span>&middot;</span>',
+        '<time datetime="' + escapeHtml(post.date || post.createdAt || '') + '">' + escapeHtml(formatDate(post.date || post.createdAt)) + '</time>',
+        '</div>',
+        '<p class="detail-body">' + escapeHtml(post.body || post.summary || 'No content available.') + '</p>',
+        '<div class="detail-tags">' + tags.map(function (tag) {
+          return '<span>' + escapeHtml(tag) + '</span>';
+        }).join('') + '</div>'
+      ].join('');
+
+      // add edit button/link
+      const editLink = document.createElement('a');
+      editLink.href = 'add_blog.html?id=' + encodeURIComponent(post.id);
+      editLink.className = 'btn btn-secondary';
+      editLink.textContent = 'Edit post';
+      postDetail.appendChild(document.createElement('div'));
+      postDetail.lastElementChild.appendChild(editLink);
+    }
+
+    function renderPosts(posts) {
+      if (!posts || posts.length === 0) {
+        postGrid.innerHTML = '<div class="empty-state">No posts yet. <a href="add_blog.html">Write the first one</a>.</div>';
+        renderDetail(null);
+        return;
+      }
+
+      const sortedPosts = posts.slice().sort(function (a, b) {
+        const aDate = new Date(a.date || a.createdAt || 0).getTime();
+        const bDate = new Date(b.date || b.createdAt || 0).getTime();
+        return bDate - aDate;
+      });
+
+      postGrid.innerHTML = '';
+
+      sortedPosts.forEach(function (post) {
+        const card = document.createElement('a');
+        card.href = '#';
+        card.className = 'post-card';
+        card.dataset.id = post.id;
+
+        const firstTag = Array.isArray(post.tags) && post.tags.length > 0 ? post.tags[0] : (post.status === 'draft' ? 'Draft' : 'Post');
+        const excerpt = post.summary || post.body || 'No preview available.';
+        const safeExcerpt = excerpt.length > 140 ? excerpt.slice(0, 137) + '...' : excerpt;
+
+        card.innerHTML = [
+          '<div class="card-meta">',
+          '<span class="tag">' + escapeHtml(firstTag) + '</span>',
+          '<time datetime="' + escapeHtml(post.date || post.createdAt || '') + '">' + escapeHtml(formatDate(post.date || post.createdAt)) + '</time>',
+          '</div>',
+          '<h3>' + escapeHtml(post.title || 'Untitled post') + '</h3>',
+          '<p>' + escapeHtml(safeExcerpt) + '</p>',
+          '<span class="read-more">Read post <span class="arrow">&rarr;</span></span>'
+        ].join('');
+
+        card.addEventListener('click', function (event) {
+          event.preventDefault();
+          const selectedId = Number(post.id);
+          history.replaceState(null, '', '#post-' + selectedId);
+          fetch('http://localhost:3000/blogs/' + selectedId)
+            .then(function (response) {
+              return response.json().then(function (data) {
+                return {
+                  ok: response.ok,
+                  data: data
+                };
+              });
+            })
+            .then(function (result) {
+              if (!result.ok) {
+                throw new Error(result.data.message || 'Unable to load this post.');
+              }
+              renderDetail(result.data.post || null);
+            })
+            .catch(function () {
+              renderDetail(post);
+            });
+        });
+
+        postGrid.appendChild(card);
+      });
+    }
+
+    function loadPosts() {
+      fetch('http://localhost:3000/blogs')
+        .then(function (response) {
+          return response.json().then(function (data) {
+            return {
+              ok: response.ok,
+              data: data
+            };
+          });
+        })
+        .then(function (result) {
+          if (!result.ok) {
+            throw new Error(result.data.message || 'Unable to load posts.');
+          }
+          allPosts = result.data.posts || [];
+          renderPosts(allPosts);
+
+          const hashId = window.location.hash.replace('#post-', '');
+          if (hashId) {
+            const selected = allPosts.find(function (entry) { return String(entry.id) === hashId; });
+            if (selected) {
+              renderDetail(selected);
+            }
+          }
+        })
+        .catch(function () {
+          postGrid.innerHTML = '<div class="empty-state">Unable to load posts right now. Please make sure the server is running.</div>';
+          renderDetail(null);
+        });
+    }
+
+    window.addEventListener('hashchange', function () {
+      const hashId = window.location.hash.replace('#post-', '');
+      if (!hashId) {
+        renderDetail(null);
+        return;
+      }
+
+      const selected = allPosts.find(function (entry) { return String(entry.id) === hashId; });
+      if (selected) {
+        renderDetail(selected);
+      }
+    });
+
+    loadPosts();
+  }
+
   const form = document.getElementById('postForm');
   if (!form) return; // not on this page, nothing to do
 
   const banner = document.getElementById('formBanner');
   const tagRow = document.getElementById('tagRow');
+  const urlParams = new URLSearchParams(window.location.search);
+  const editIdParam = urlParams.get('id');
 
   const fields = {
     title: {
@@ -60,16 +232,73 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   };
 
-  // ---------- live character counters ----------
   const summaryCount = document.getElementById('summary-count');
+  const bodyCount = document.getElementById('body-count');
+
+  // If opened with an `id` param, load the post and prefill the form for editing
+  if (editIdParam) {
+    fetch('http://localhost:3000/blogs/' + editIdParam)
+      .then(function (response) {
+        return response.json().then(function (data) {
+          return { ok: response.ok, data: data };
+        });
+      })
+      .then(function (result) {
+        if (!result.ok) {
+          showBanner('error', 'Unable to load post for editing.');
+          return;
+        }
+
+        const post = result.data.post;
+        if (!post) {
+          showBanner('error', 'Post not found.');
+          return;
+        }
+
+        fields.title.input.value = post.title || '';
+        fields.author.input.value = post.author || '';
+        fields.date.input.value = post.date || '';
+        fields.summary.input.value = post.summary || '';
+        fields.body.input.value = post.body || '';
+        summaryCount.textContent = (fields.summary.input.value || '').length + ' / 160';
+        bodyCount.textContent = (fields.body.input.value || '').trim().length + ' characters';
+
+        // select tags that match
+        const selectedTags = Array.isArray(post.tags) ? post.tags : [];
+        tagRow.querySelectorAll('.tag-chip').forEach(function (chip) {
+          if (selectedTags.indexOf(chip.dataset.tag) !== -1) {
+            chip.classList.add('selected');
+          } else {
+            chip.classList.remove('selected');
+          }
+        });
+
+        // set status if present
+        if (post.status) {
+          const statusEl = document.getElementById('status');
+          if (statusEl) statusEl.value = post.status;
+        }
+
+        // mark form as edit mode
+        form.dataset.editId = String(post.id);
+      })
+      .catch(function () {
+        showBanner('error', 'Unable to load post for editing.');
+      });
+  }
+
+  // ---------- live character counters ----------
   fields.summary.input.addEventListener('input', function () {
-    summaryCount.textContent = fields.summary.input.value.length + ' / 160';
+    if (summaryCount) {
+      summaryCount.textContent = fields.summary.input.value.length + ' / 160';
+    }
   });
 
-  const bodyCount = document.getElementById('body-count');
   fields.body.input.addEventListener('input', function () {
-    const len = fields.body.input.value.trim().length;
-    bodyCount.textContent = len + ' characters' + (len < 40 ? ' (min 40)' : '');
+    if (bodyCount) {
+      const len = fields.body.input.value.trim().length;
+      bodyCount.textContent = len + ' characters' + (len < 40 ? ' (min 40)' : '');
+    }
   });
 
   // ---------- per-field validation helpers ----------
@@ -145,7 +374,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (!allValid) {
       showBanner('error', 'Please fix the highlighted fields before saving.');
-      // move focus to the first invalid field
       const firstInvalidKey = Object.keys(fields).find(function (key) {
         return fields[key].input.classList.contains('invalid');
       });
@@ -167,12 +395,19 @@ document.addEventListener('DOMContentLoaded', function () {
       status: document.getElementById('status').value
     };
 
-    fetch('http://localhost:3000/blogs', {
-      method: 'POST',
+    const editId = form.dataset.editId;
+    // Some environments/clients may not allow PUT; use a POST-based update endpoint when editing
+    const submittingUrl = editId ? 'http://localhost:3000/blogs/update' : 'http://localhost:3000/blogs';
+    const method = 'POST';
+
+    const bodyPayload = editId ? Object.assign({ id: Number(editId) }, payload) : payload;
+
+    fetch(submittingUrl, {
+      method: method,
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(bodyPayload)
     })
       .then(function (response) {
         return response.json().then(function (data) {
