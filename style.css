@@ -376,6 +376,13 @@ img { max-width: 100%; display: block; }
   border-radius: 999px;
 }
 
+.post-detail .detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
 /* ================= Forms (Add Blog page) ================= */
 .form-page .hero { padding-bottom: 32px; }
 

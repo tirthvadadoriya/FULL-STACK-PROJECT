@@ -152,6 +152,22 @@ app.get("/blogs/:id", (req, res) => {
     });
 });
 
+app.delete("/blogs/:id", (req, res) => {
+    const postId = Number(req.params.id);
+    const index = blogPosts.findIndex((entry) => entry.id === postId);
+
+    if (index === -1) {
+        return res.status(404).json({ message: "Blog post not found." });
+    }
+
+    const [deletedPost] = blogPosts.splice(index, 1);
+
+    res.json({
+        message: "Blog post deleted successfully!",
+        deletedPost: deletedPost
+    });
+});
+
 app.put("/blogs/:id", (req, res) => {
     const postId = Number(req.params.id);
     const index = blogPosts.findIndex((entry) => entry.id === postId);

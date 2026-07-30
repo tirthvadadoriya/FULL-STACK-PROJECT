@@ -56,13 +56,56 @@ document.addEventListener('DOMContentLoaded', function () {
         }).join('') + '</div>'
       ].join('');
 
+      const actionRow = document.createElement('div');
+      actionRow.className = 'detail-actions';
+
       // add edit button/link
       const editLink = document.createElement('a');
       editLink.href = 'add_blog.html?id=' + encodeURIComponent(post.id);
       editLink.className = 'btn btn-secondary';
       editLink.textContent = 'Edit post';
-      postDetail.appendChild(document.createElement('div'));
-      postDetail.lastElementChild.appendChild(editLink);
+      actionRow.appendChild(editLink);
+
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'btn btn-ghost';
+      deleteButton.textContent = 'Delete post';
+      deleteButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        if (!window.confirm('Delete this post?')) {
+          return;
+        }
+
+        const selectedId = Number(post.id);
+        fetch('http://localhost:3000/blogs/' + selectedId, {
+          method: 'DELETE'
+        })
+          .then(function (response) {
+            return response.json().then(function (data) {
+              return {
+                ok: response.ok,
+                data: data
+              };
+            });
+          })
+          .then(function (result) {
+            if (!result.ok) {
+              throw new Error(result.data.message || 'Unable to delete this post.');
+            }
+
+            allPosts = allPosts.filter(function (entry) {
+              return Number(entry.id) !== selectedId;
+            });
+            renderPosts(allPosts);
+            renderDetail(null);
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+          })
+          .catch(function (error) {
+            window.alert(error.message || 'Unable to delete this post.');
+          });
+      });
+      actionRow.appendChild(deleteButton);
+      postDetail.appendChild(actionRow);
     }
 
     function renderPosts(posts) {
