@@ -5,8 +5,13 @@
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', function () {
+  const API_BASE_URL = '/api';
   const postGrid = document.getElementById('postGrid');
   const postDetail = document.getElementById('postDetail');
+
+  function apiUrl(path) {
+    return API_BASE_URL + (path.startsWith('/') ? path : '/' + path);
+  }
 
   if (postGrid) {
     let allPosts = [];
@@ -77,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const selectedId = Number(post.id);
-        fetch('http://localhost:3000/blogs/' + selectedId, {
+        fetch(apiUrl('/blogs/' + selectedId), {
           method: 'DELETE'
         })
           .then(function (response) {
@@ -147,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function () {
           event.preventDefault();
           const selectedId = Number(post.id);
           history.replaceState(null, '', '#post-' + selectedId);
-          fetch('http://localhost:3000/blogs/' + selectedId)
+          fetch(apiUrl('/blogs/' + selectedId))
             .then(function (response) {
               return response.json().then(function (data) {
                 return {
@@ -172,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function loadPosts() {
-      fetch('http://localhost:3000/blogs')
+      fetch(apiUrl('/blogs'))
         .then(function (response) {
           return response.json().then(function (data) {
             return {
@@ -280,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // If opened with an `id` param, load the post and prefill the form for editing
   if (editIdParam) {
-    fetch('http://localhost:3000/blogs/' + editIdParam)
+    fetch(apiUrl('/blogs/' + editIdParam))
       .then(function (response) {
         return response.json().then(function (data) {
           return { ok: response.ok, data: data };
@@ -440,7 +445,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const editId = form.dataset.editId;
     // Some environments/clients may not allow PUT; use a POST-based update endpoint when editing
-    const submittingUrl = editId ? 'http://localhost:3000/blogs/update' : 'http://localhost:3000/blogs';
+    const submittingUrl = editId ? apiUrl('/blogs/update') : apiUrl('/blogs');
     const method = 'POST';
 
     const bodyPayload = editId ? Object.assign({ id: Number(editId) }, payload) : payload;

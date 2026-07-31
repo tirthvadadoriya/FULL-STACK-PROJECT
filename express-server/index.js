@@ -92,180 +92,184 @@ app.get("/about", (req, res) => {
     });
 });
 
-app.get("/blogs", (req, res) => {
-    res.json({
-        count: blogPosts.length,
-        posts: blogPosts
-    });
-});
-
-app.get('/blogs/debug', (req, res) => {
-    res.json({
-        route: '/blogs/debug',
-        postIds: blogPosts.map((entry) => entry.id),
-        count: blogPosts.length
-    });
-});
-
-// Alternate update endpoint that accepts an `id` in the request body.
-app.post('/blogs/update', (req, res) => {
-    const { id, title, author, date, summary, body, tags, status } = req.body;
-    const postId = Number(id);
-    const index = blogPosts.findIndex((entry) => entry.id === postId);
-
-    if (index === -1) {
-        return res.status(404).json({ message: 'Blog post not found.' });
-    }
-
-    if (!title || !author || !date || !body) {
-        return res.status(400).json({ message: 'Title, author, date, and body are required.' });
-    }
-
-    const updatedPost = Object.assign({}, blogPosts[index], {
-        title: title.trim(),
-        author: author.trim(),
-        date: date.trim(),
-        summary: summary ? summary.trim() : '',
-        body: body.trim(),
-        tags: Array.isArray(tags) ? tags : [],
-        status: status || blogPosts[index].status,
-        updatedAt: new Date().toISOString()
-    });
-
-    blogPosts[index] = updatedPost;
-
-    res.json({ message: 'Blog post updated successfully!', post: updatedPost });
-});
-
-app.get("/blogs/:id", (req, res) => {
-    const postId = Number(req.params.id);
-    const post = blogPosts.find((entry) => entry.id === postId);
-
-    if (!post) {
-        return res.status(404).json({
-            message: "Blog post not found."
+function registerBlogRoutes(app, basePath = "/blogs") {
+    app.get([basePath, `${basePath}/`], (req, res) => {
+        res.json({
+            count: blogPosts.length,
+            posts: blogPosts
         });
-    }
-
-    res.json({
-        post: post
     });
-});
 
-app.delete("/blogs/:id", (req, res) => {
-    const postId = Number(req.params.id);
-    const index = blogPosts.findIndex((entry) => entry.id === postId);
-
-    if (index === -1) {
-        return res.status(404).json({ message: "Blog post not found." });
-    }
-
-    const [deletedPost] = blogPosts.splice(index, 1);
-
-    res.json({
-        message: "Blog post deleted successfully!",
-        deletedPost: deletedPost
-    });
-});
-
-app.put("/blogs/:id", (req, res) => {
-    const postId = Number(req.params.id);
-    const index = blogPosts.findIndex((entry) => entry.id === postId);
-
-    if (index === -1) {
-        return res.status(404).json({ message: "Blog post not found." });
-    }
-
-    const { title, author, date, summary, body, tags, status } = req.body;
-
-    if (!title || !author || !date || !body) {
-        return res.status(400).json({
-            message: "Title, author, date, and body are required."
+    app.get(`${basePath}/debug`, (req, res) => {
+        res.json({
+            route: `${basePath}/debug`,
+            postIds: blogPosts.map((entry) => entry.id),
+            count: blogPosts.length
         });
-    }
-
-    const updatedPost = Object.assign({}, blogPosts[index], {
-        title: title.trim(),
-        author: author.trim(),
-        date: date.trim(),
-        summary: summary ? summary.trim() : "",
-        body: body.trim(),
-        tags: Array.isArray(tags) ? tags : [],
-        status: status || blogPosts[index].status,
-        updatedAt: new Date().toISOString()
     });
 
-    blogPosts[index] = updatedPost;
+    app.post(`${basePath}/update`, (req, res) => {
+        const { id, title, author, date, summary, body, tags, status } = req.body;
+        const postId = Number(id);
+        const index = blogPosts.findIndex((entry) => entry.id === postId);
 
-    res.json({
-        message: "Blog post updated successfully!",
-        post: updatedPost
-    });
-});
+        if (index === -1) {
+            return res.status(404).json({ message: 'Blog post not found.' });
+        }
 
-app.post('/blogs/:id', (req, res) => {
-    const postId = Number(req.params.id);
-    const index = blogPosts.findIndex((entry) => entry.id === postId);
+        if (!title || !author || !date || !body) {
+            return res.status(400).json({ message: 'Title, author, date, and body are required.' });
+        }
 
-    if (index === -1) {
-        return res.status(404).json({ message: "Blog post not found." });
-    }
-
-    const { title, author, date, summary, body, tags, status } = req.body;
-
-    if (!title || !author || !date || !body) {
-        return res.status(400).json({
-            message: "Title, author, date, and body are required."
+        const updatedPost = Object.assign({}, blogPosts[index], {
+            title: title.trim(),
+            author: author.trim(),
+            date: date.trim(),
+            summary: summary ? summary.trim() : '',
+            body: body.trim(),
+            tags: Array.isArray(tags) ? tags : [],
+            status: status || blogPosts[index].status,
+            updatedAt: new Date().toISOString()
         });
-    }
 
-    const updatedPost = Object.assign({}, blogPosts[index], {
-        title: title.trim(),
-        author: author.trim(),
-        date: date.trim(),
-        summary: summary ? summary.trim() : "",
-        body: body.trim(),
-        tags: Array.isArray(tags) ? tags : [],
-        status: status || blogPosts[index].status,
-        updatedAt: new Date().toISOString()
+        blogPosts[index] = updatedPost;
+
+        res.json({ message: 'Blog post updated successfully!', post: updatedPost });
     });
 
-    blogPosts[index] = updatedPost;
+    app.get(`${basePath}/:id`, (req, res) => {
+        const postId = Number(req.params.id);
+        const post = blogPosts.find((entry) => entry.id === postId);
 
-    res.json({
-        message: "Blog post updated successfully!",
-        post: updatedPost
-    });
-});
+        if (!post) {
+            return res.status(404).json({
+                message: "Blog post not found."
+            });
+        }
 
-app.post("/blogs", (req, res) => {
-    const { title, author, date, summary, body, tags, status } = req.body;
-
-    if (!title || !author || !date || !body) {
-        return res.status(400).json({
-            message: "Title, author, date, and body are required."
+        res.json({
+            post: post
         });
-    }
-
-    const newPost = {
-        id: blogPosts.length + 1,
-        title: title.trim(),
-        author: author.trim(),
-        date: date.trim(),
-        summary: summary ? summary.trim() : "",
-        body: body.trim(),
-        tags: Array.isArray(tags) ? tags : [],
-        status: status || "draft",
-        createdAt: new Date().toISOString()
-    };
-
-    blogPosts.push(newPost);
-
-    res.status(201).json({
-        message: "Blog post created successfully!",
-        post: newPost
     });
-});
+
+    app.delete(`${basePath}/:id`, (req, res) => {
+        const postId = Number(req.params.id);
+        const index = blogPosts.findIndex((entry) => entry.id === postId);
+
+        if (index === -1) {
+            return res.status(404).json({ message: "Blog post not found." });
+        }
+
+        const [deletedPost] = blogPosts.splice(index, 1);
+
+        res.json({
+            message: "Blog post deleted successfully!",
+            deletedPost: deletedPost
+        });
+    });
+
+    app.put(`${basePath}/:id`, (req, res) => {
+        const postId = Number(req.params.id);
+        const index = blogPosts.findIndex((entry) => entry.id === postId);
+
+        if (index === -1) {
+            return res.status(404).json({ message: "Blog post not found." });
+        }
+
+        const { title, author, date, summary, body, tags, status } = req.body;
+
+        if (!title || !author || !date || !body) {
+            return res.status(400).json({
+                message: "Title, author, date, and body are required."
+            });
+        }
+
+        const updatedPost = Object.assign({}, blogPosts[index], {
+            title: title.trim(),
+            author: author.trim(),
+            date: date.trim(),
+            summary: summary ? summary.trim() : "",
+            body: body.trim(),
+            tags: Array.isArray(tags) ? tags : [],
+            status: status || blogPosts[index].status,
+            updatedAt: new Date().toISOString()
+        });
+
+        blogPosts[index] = updatedPost;
+
+        res.json({
+            message: "Blog post updated successfully!",
+            post: updatedPost
+        });
+    });
+
+    app.post(`${basePath}/:id`, (req, res) => {
+        const postId = Number(req.params.id);
+        const index = blogPosts.findIndex((entry) => entry.id === postId);
+
+        if (index === -1) {
+            return res.status(404).json({ message: "Blog post not found." });
+        }
+
+        const { title, author, date, summary, body, tags, status } = req.body;
+
+        if (!title || !author || !date || !body) {
+            return res.status(400).json({
+                message: "Title, author, date, and body are required."
+            });
+        }
+
+        const updatedPost = Object.assign({}, blogPosts[index], {
+            title: title.trim(),
+            author: author.trim(),
+            date: date.trim(),
+            summary: summary ? summary.trim() : "",
+            body: body.trim(),
+            tags: Array.isArray(tags) ? tags : [],
+            status: status || blogPosts[index].status,
+            updatedAt: new Date().toISOString()
+        });
+
+        blogPosts[index] = updatedPost;
+
+        res.json({
+            message: "Blog post updated successfully!",
+            post: updatedPost
+        });
+    });
+
+    app.post(basePath, (req, res) => {
+        const { title, author, date, summary, body, tags, status } = req.body;
+
+        if (!title || !author || !date || !body) {
+            return res.status(400).json({
+                message: "Title, author, date, and body are required."
+            });
+        }
+
+        const newPost = {
+            id: blogPosts.length + 1,
+            title: title.trim(),
+            author: author.trim(),
+            date: date.trim(),
+            summary: summary ? summary.trim() : "",
+            body: body.trim(),
+            tags: Array.isArray(tags) ? tags : [],
+            status: status || "draft",
+            createdAt: new Date().toISOString()
+        };
+
+        blogPosts.push(newPost);
+
+        res.status(201).json({
+            message: "Blog post created successfully!",
+            post: newPost
+        });
+    });
+}
+
+registerBlogRoutes(app, "/blogs");
+registerBlogRoutes(app, "/api/blogs");
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
