@@ -8,6 +8,38 @@ document.addEventListener('DOMContentLoaded', function () {
   const API_BASE_URL = '/api';
   const postGrid = document.getElementById('postGrid');
   const postDetail = document.getElementById('postDetail');
+  let revealObserver = null;
+
+  function observeRevealElement(element) {
+    if (!element) return;
+
+    element.classList.add('reveal');
+
+    if (!('IntersectionObserver' in window)) {
+      element.classList.add('is-visible');
+      return;
+    }
+
+    if (!revealObserver) {
+      revealObserver = new IntersectionObserver(function (entries, observer) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15 });
+    }
+
+    revealObserver.observe(element);
+  }
+
+  function setupRevealEffects() {
+    const initialElements = document.querySelectorAll('.hero .wrap, .section-label, .site-nav .wrap, .site-footer .wrap');
+    initialElements.forEach(function (element) {
+      observeRevealElement(element);
+    });
+  }
 
   function apiUrl(path) {
     return API_BASE_URL + (path.startsWith('/') ? path : '/' + path);
@@ -47,6 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const tags = Array.isArray(post.tags) && post.tags.length > 0 ? post.tags : ['General'];
       postDetail.hidden = false;
+      postDetail.classList.add('reveal');
       postDetail.innerHTML = [
         '<p class="section-label">Reading now</p>',
         '<h2>' + escapeHtml(post.title || 'Untitled post') + '</h2>',
@@ -111,6 +144,7 @@ document.addEventListener('DOMContentLoaded', function () {
       });
       actionRow.appendChild(deleteButton);
       postDetail.appendChild(actionRow);
+      observeRevealElement(postDetail);
     }
 
     function renderPosts(posts) {
@@ -133,6 +167,7 @@ document.addEventListener('DOMContentLoaded', function () {
         card.href = '#';
         card.className = 'post-card';
         card.dataset.id = post.id;
+        observeRevealElement(card);
 
         const firstTag = Array.isArray(post.tags) && post.tags.length > 0 ? post.tags[0] : (post.status === 'draft' ? 'Draft' : 'Post');
         const excerpt = post.summary || post.body || 'No preview available.';
@@ -177,6 +212,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function loadPosts() {
+      setupRevealEffects();
+
       fetch(apiUrl('/blogs'))
         .then(function (response) {
           return response.json().then(function (data) {
