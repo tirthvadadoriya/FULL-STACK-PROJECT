@@ -45,21 +45,36 @@ document.addEventListener('DOMContentLoaded', function () {
     return API_BASE_URL + (path.startsWith('/') ? path : '/' + path);
   }
 
-  if (postGrid) {
-    let allPosts = [];
+  function parseJsonResponse(response) {
+    return response.text().then(function (text) {
+      try {
+        return { ok: response.ok, data: text ? JSON.parse(text) : null };
+      } catch (error) {
+        return { ok: response.ok, data: null };
+      }
+    });
+  }
 
-    function formatDate(value) {
-      if (!value) return '';
-      const date = new Date(value);
-      if (Number.isNaN(date.getTime())) return value;
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    }
+  function fetchJson(path, options) {
+    return fetch(apiUrl(path), options).then(parseJsonResponse);
+  }
 
-    function escapeHtml(value) {
+  function fetchJsonUrl(url, options) {
+    return fetch(url, options).then(parseJsonResponse);
+  }
+
+  function formatDate(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+
+  function escapeHtml(value) {
       return String(value || '')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -115,20 +130,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const selectedId = Number(post.id);
-        fetch(apiUrl('/blogs/' + selectedId), {
-          method: 'DELETE'
-        })
-          .then(function (response) {
-            return response.json().then(function (data) {
-              return {
-                ok: response.ok,
-                data: data
-              };
-            });
-          })
+        fetchJson('/blogs/' + selectedId, { method: 'DELETE' })
           .then(function (result) {
             if (!result.ok) {
-              throw new Error(result.data.message || 'Unable to delete this post.');
+              throw new Error((result.data && result.data.message) || 'Unable to delete this post.');
             }
 
             allPosts = allPosts.filter(function (entry) {
@@ -161,13 +166,13 @@ document.addEventListener('DOMContentLoaded', function () {
       });
 
       postGrid.innerHTML = '';
+      const gridFragment = document.createDocumentFragment();
 
       sortedPosts.forEach(function (post) {
         const card = document.createElement('a');
         card.href = '#';
         card.className = 'post-card';
         card.dataset.id = post.id;
-        observeRevealElement(card);
 
         const firstTag = Array.isArray(post.tags) && post.tags.length > 0 ? post.tags[0] : (post.status === 'draft' ? 'Draft' : 'Post');
         const excerpt = post.summary || post.body || 'No preview available.';
@@ -187,18 +192,10 @@ document.addEventListener('DOMContentLoaded', function () {
           event.preventDefault();
           const selectedId = Number(post.id);
           history.replaceState(null, '', '#post-' + selectedId);
-          fetch(apiUrl('/blogs/' + selectedId))
-            .then(function (response) {
-              return response.json().then(function (data) {
-                return {
-                  ok: response.ok,
-                  data: data
-                };
-              });
-            })
+          fetchJson('/blogs/' + selectedId)
             .then(function (result) {
               if (!result.ok) {
-                throw new Error(result.data.message || 'Unable to load this post.');
+                throw new Error((result.data && result.data.message) || 'Unable to load this post.');
               }
               renderDetail(result.data.post || null);
             })
@@ -207,25 +204,19 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
 
-        postGrid.appendChild(card);
+        gridFragment.appendChild(card);
       });
+
+      postGrid.appendChild(gridFragment);
     }
 
     function loadPosts() {
       setupRevealEffects();
 
-      fetch(apiUrl('/blogs'))
-        .then(function (response) {
-          return response.json().then(function (data) {
-            return {
-              ok: response.ok,
-              data: data
-            };
-          });
-        })
+      fetchJson('/blogs')
         .then(function (result) {
           if (!result.ok) {
-            throw new Error(result.data.message || 'Unable to load posts.');
+            throw new Error((result.data && result.data.message) || 'Unable to load posts.');
           }
           allPosts = result.data.posts || [];
           renderPosts(allPosts);
@@ -319,15 +310,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const summaryCount = document.getElementById('summary-count');
   const bodyCount = document.getElementById('body-count');
+  const statusInput = document.getElementById('status');
+  const tagChips = Array.from(tagRow.querySelectorAll('.tag-chip'));
 
   // If opened with an `id` param, load the post and prefill the form for editing
   if (editIdParam) {
-    fetch(apiUrl('/blogs/' + editIdParam))
-      .then(function (response) {
-        return response.json().then(function (data) {
-          return { ok: response.ok, data: data };
-        });
-      })
+    fetchJson('/blogs/' + editIdParam)
       .then(function (result) {
         if (!result.ok) {
           showBanner('error', 'Unable to load post for editing.');
@@ -348,23 +336,15 @@ document.addEventListener('DOMContentLoaded', function () {
         summaryCount.textContent = (fields.summary.input.value || '').length + ' / 160';
         bodyCount.textContent = (fields.body.input.value || '').trim().length + ' characters';
 
-        // select tags that match
         const selectedTags = Array.isArray(post.tags) ? post.tags : [];
-        tagRow.querySelectorAll('.tag-chip').forEach(function (chip) {
-          if (selectedTags.indexOf(chip.dataset.tag) !== -1) {
-            chip.classList.add('selected');
-          } else {
-            chip.classList.remove('selected');
-          }
+        tagChips.forEach(function (chip) {
+          chip.classList.toggle('selected', selectedTags.indexOf(chip.dataset.tag) !== -1);
         });
 
-        // set status if present
-        if (post.status) {
-          const statusEl = document.getElementById('status');
-          if (statusEl) statusEl.value = post.status;
+        if (post.status && statusInput) {
+          statusInput.value = post.status;
         }
 
-        // mark form as edit mode
         form.dataset.editId = String(post.id);
       })
       .catch(function () {
@@ -428,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function () {
     return selected.length > 0;
   }
 
-  tagRow.querySelectorAll('.tag-chip').forEach(function (chip) {
+  tagChips.forEach(function (chip) {
     chip.addEventListener('click', function () {
       chip.classList.toggle('selected');
       validateTags();
@@ -477,7 +457,7 @@ document.addEventListener('DOMContentLoaded', function () {
       summary: fields.summary.input.value.trim(),
       body: fields.body.input.value.trim(),
       tags: getSelectedTags(),
-      status: document.getElementById('status').value
+      status: statusInput ? statusInput.value : 'draft'
     };
 
     const editId = form.dataset.editId;
@@ -487,32 +467,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const bodyPayload = editId ? Object.assign({ id: Number(editId) }, payload) : payload;
 
-    fetch(submittingUrl, {
+    fetchJsonUrl(submittingUrl, {
       method: method,
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(bodyPayload)
     })
-      .then(function (response) {
-        return response.json().then(function (data) {
-          return {
-            ok: response.ok,
-            data: data
-          };
-        });
-      })
       .then(function (result) {
         if (!result.ok) {
-          throw new Error(result.data.message || 'Unable to save the post right now.');
+          throw new Error((result.data && result.data.message) || 'Unable to save the post right now.');
         }
 
         const status = payload.status;
         const verb = status === 'published' ? 'published' : 'saved as a draft';
         showBanner('success', 'Post "' + payload.title + '" was ' + verb + ' successfully.');
         form.reset();
-        tagRow.querySelectorAll('.tag-chip').forEach(function (chip) { chip.classList.remove('selected'); });
-        tagRow.querySelector('.tag-chip').classList.add('selected');
+        tagChips.forEach(function (chip) { chip.classList.remove('selected'); });
+        if (tagChips[0]) { tagChips[0].classList.add('selected'); }
         summaryCount.textContent = '0 / 160';
         bodyCount.textContent = '0 characters (min 40)';
         Object.keys(fields).forEach(function (key) { showError(fields[key], ''); });
